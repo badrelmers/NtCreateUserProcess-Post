@@ -1,0 +1,34 @@
+name: Build MSBuild Release x64
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch: # Allows you to manually trigger the build from the GitHub UI
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    # 1. Pull the source code down to the runner
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    # 2. Add MSBuild to the command line path
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    # 3. Compile the solution using specified parameters
+    - name: Build Solution (Release x64)
+      run: |
+        msbuild *.sln /p:Configuration=Release /p:Platform=x64 /m
+
+    # 4. Gather the compiled binaries and make them available for download
+    - name: Upload Compiled Binaries
+      uses: actions/upload-artifact@v4
+      with:
+        name: NtCreateUserProcess-Binaries
+        path: |
+          **/x64/Release/*.exe
