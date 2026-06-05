@@ -8,10 +8,26 @@
 int wmain(int argc, wchar_t* argv[])
 {
 	LPCWSTR ImageName = NULL;
+	wchar_t FallbackPath[MAX_PATH] = { 0 }; // Buffer to hold the resolved SystemDrive path
+
 	if (argc == 1)
 	{
-		ImageName = L"C:\\Windows\\System32\\dfrgui.exe";
-		wprintf(L"[*] Default: %ls\n", ImageName);
+		wprintf(L"[*] Example: NtCreateUserProcess-Post.exe C:\\Windows\\system32\\notepad.exe\n[!] On Windows 11 Notepad.exe is AppX so it doesn't work.(AppX no supported yet)\n");
+
+		// Dynamically read %SystemDrive% (e.g., "C:")
+		DWORD envResult = GetEnvironmentVariableW(L"SystemDrive", FallbackPath, MAX_PATH);
+		
+		if (envResult > 0 && envResult < MAX_PATH)
+		{
+			wcscat_s(FallbackPath, L"\\Windows\\System32\\dfrgui.exe");
+			ImageName = FallbackPath;
+		}
+		else
+		{
+			// Hardcoded safety fallback if the environment variable read fails
+			ImageName = L"C:\\Windows\\System32\\dfrgui.exe";
+		}
+		wprintf(L"[*] Run the default: %ls\n", ImageName);
 	}
 	else if (argc == 2)
 	{
