@@ -1,11 +1,11 @@
-name: Build MSBuild Release x64
+name: Build All MSBuild Solutions Release x64
 
 on:
   push:
     branches: [ "main", "master" ]
   pull_request:
     branches: [ "main", "master" ]
-  workflow_dispatch: # Allows you to manually trigger the build from the GitHub UI
+  workflow_dispatch:
 
 jobs:
   build:
@@ -20,15 +20,20 @@ jobs:
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
 
-    # 3. Compile the solution using specified parameters
-    - name: Build Solution (Release x64)
+    # 3. Discover and compile every solution file recursively
+    - name: Build All Solutions (Release x64)
       run: |
-        msbuild NtCreateUserProcess-Post.sln /p:Configuration=Release /p:Platform=x64 /m
+        Get-ChildItem -Recurse -Filter *.sln | ForEach-Object {
+            Write-Output "========================================="
+            Write-Output "Compiling: $($_.FullName)"
+            Write-Output "========================================="
+            msbuild $_.FullName /p:Configuration=Release /p:Platform=x64 /m
+        }
 
-    # 4. Gather the compiled binaries and make them available for download
-    - name: Upload Compiled Binaries
+    # 4. Gather all compiled executables across both projects
+    - name: Upload All Compiled Binaries
       uses: actions/upload-artifact@v4
       with:
-        name: NtCreateUserProcess-Binaries
+        name: NtCreateUserProcess-All-Binaries
         path: |
           **/x64/Release/*.exe
