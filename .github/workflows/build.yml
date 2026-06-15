@@ -9,7 +9,8 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    # it was compiling fine with windows-latest when it used Image: windows-2025 Version: 20260525.149.1 , but now Native sln fails with Image: windows-2025-vs2026 Version: 20260608.135.2 , lets just use windows-2022 while it s still supported
+    runs-on: windows-2022
 
     steps:
     # 1. Pull the source code down to the runner
