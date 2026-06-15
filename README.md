@@ -1,3 +1,11 @@
+
+This fork adds `NtCreateUserProcess-Direct`, which invokes the standard `ntdll.dll` API NtCreateUserProcess direclty instead of issuing a raw assembly syscall (unlike `NtCreateUserProcess-Post`). This was added specifically to test userland-only sandboxes, which cannot intercept raw syscalls without a kernel-mode driver or ETW (which suffers from bugs and is unreliable on Windows 7).
+
+NtCreateUserProcess-Post is unique because it correctly resolves the complex CSRSS registration and SxS (Side-by-Side) assembly dilemmas. While most implementations available online can only successfully launch basic console applications like `cmd.exe`, this is the only one capable of properly running GUI applications like `calc.exe`. So thanks must go to https://github.com/je5442804
+
+Badr Elmers
+___
+
 # NtCreateUserProcess-Post && NtCreateUserProcess-Native
 NtCreateUserProcess with CsrClientCallServer for mainstream Windows x64 version.  
 

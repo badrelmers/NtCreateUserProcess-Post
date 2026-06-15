@@ -48,6 +48,32 @@ int wmain(int argc, wchar_t* argv[])
 	CLIENT_ID ClientId = { 0 };
 	HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
 	t_RtlCreateProcessParametersEx RtlCreateProcessParametersEx = (t_RtlCreateProcessParametersEx)GetProcAddress(ntdll, "RtlCreateProcessParametersEx");
+
+	// Direct call through ntdll — not the syscall stub in syscalls.asm.
+	// This is what a userland hook (e.g. sandboxie-style) can intercept.
+	// SW3_PopulateSyscallList() is still triggered by NtOpenProcess below,
+	// so CsrPortHandle / BasepConstructSxsCreateProcessMessage are still found
+	// in time for CallCsrss.
+	typedef NTSTATUS(NTAPI* t_NtCreateUserProcess)(
+		PHANDLE              ProcessHandle,
+		PHANDLE              ThreadHandle,
+		ACCESS_MASK          ProcessDesiredAccess,
+		ACCESS_MASK          ThreadDesiredAccess,
+		POBJECT_ATTRIBUTES   ProcessObjectAttributes,
+		POBJECT_ATTRIBUTES   ThreadObjectAttributes,
+		ULONG                ProcessFlags,
+		ULONG                ThreadFlags,
+		PVOID                ProcessParameters,
+		PPS_CREATE_INFO      CreateInfo,
+		PPS_ATTRIBUTE_LIST   AttributeList);
+	t_NtCreateUserProcess pNtCreateUserProcess =
+		(t_NtCreateUserProcess)GetProcAddress(ntdll, "NtCreateUserProcess");
+	if (!pNtCreateUserProcess)
+	{
+		wprintf(L"[-] Failed to resolve NtCreateUserProcess from ntdll\n");
+		return -1;
+	}
+	wprintf(L"[+] ntdll!NtCreateUserProcess (direct): %p\n", pNtCreateUserProcess);
 	clientId.UniqueProcess = UlongToHandle(GetCurrentProcessId());
 	clientId.UniqueThread = (HANDLE)0;
 	
@@ -157,8 +183,10 @@ int wmain(int argc, wchar_t* argv[])
 
 	HANDLE hProcess = NULL;
 	HANDLE hThread = NULL;
-	Status = NtCreateUserProcess(&hProcess, &hThread, MAXIMUM_ALLOWED, MAXIMUM_ALLOWED, NULL, NULL, 0, 1, ProcessParameters, &CreateInfo, &AttributeList);
-	wprintf(L"[*] NtCreateUserProcess: 0x%08x\n", Status);
+	// Direct call — goes through ntdll's stub, not our syscalls.asm.
+	// A userland hook on ntdll!NtCreateUserProcess will intercept this.
+	Status = pNtCreateUserProcess(&hProcess, &hThread, MAXIMUM_ALLOWED, MAXIMUM_ALLOWED, NULL, NULL, 0, 1, ProcessParameters, &CreateInfo, &AttributeList);
+	wprintf(L"[*] NtCreateUserProcess (direct): 0x%08x\n", Status);
 	if (!NT_SUCCESS(Status))
 		return Status;
 	PEB peb2 = { 0 };
